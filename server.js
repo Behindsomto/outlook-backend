@@ -1,31 +1,36 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
+const path = require("path");
 
 const app = express();
-const port = 3000;
 
-app.use(cors()); // Allow frontend from different location
+// 📦 Middleware
+app.use(cors());
 app.use(express.json());
 
-// 🔌 Connect to MongoDB (local)
-mongoose.connect("mongodb://127.0.0.1:27017/userdb", {
+// 🌍 Serve static frontend (optional, if you’re hosting both frontend and backend together)
+// Place your index.html, style.css, script.js inside a "public" folder
+app.use(express.static(path.join(__dirname, "public")));
+
+// 🔌 Connect to MongoDB Atlas using environment variable
+const mongoURI = process.env.MONGO_URI || "mongodb://127.0.0.1:27017/userdb";
+mongoose.connect(mongoURI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 });
-
 mongoose.connection.once("open", () => {
   console.log("✅ Connected to MongoDB");
 });
 
-// 🧠 Schema & Model (called userinfos)
+// 🧠 Schema & Model
 const UserInfo = mongoose.model("UserInfo", {
   input1: String,
   input2: String,
   createdAt: { type: Date, default: Date.now },
 });
 
-// 📩 Endpoint to receive data
+// 📩 POST endpoint
 app.post("/submit", async (req, res) => {
   const { input1, input2 } = req.body;
 
@@ -39,6 +44,13 @@ app.post("/submit", async (req, res) => {
   }
 });
 
-app.listen(port, () => {
-  console.log(`🚀 Server running at http://localhost:${port}`);
+// 🌐 Fallback route for frontend (optional if SPA)
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
+});
+
+// 🚀 Start server
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
 });
